@@ -8,8 +8,8 @@ const port = process.env.PORT;
 
 const app = express();
 
-app.use(urlencoded({extended: true}))
-app.use(json())
+app.use(urlencoded({extended: true, limit: '50mb'}))
+app.use(json({limit: '50mb'}))
 
 
 app.use(cors())
