@@ -77,24 +77,31 @@ const validateCredentials = async (req, res) => {
   }
 
   const Profile = (req, res) => {
-    const uploadSingle = upload("youtube-back-aws").fields([
-      { name: 'file', maxCount: 1 },
-      { name: 'title', maxCount: 1 },
-    ]);
+    const uploadSingle = upload("youtube-back-aws").single("file");
+    uploadSingle(req, res, async (err) => {
+      if (err) return res.status(400).json({ success: false, message: err.message });
 
-    uploadSingle(req,res, async(err) => {
-      if(err) return res.status(400).json({success: false, message: err.message});
       const { userId, title } = req.body;
-
-      const uploadedFile = req.files?.file?.[0];
+      const uploadedFile = req.file; // Ahora estará en req.file
       const currentDateTime = moment().tz('America/Bogota').format('YYYY-MM-DD HH:mm:ss');
       const userObjectId = new ObjectId(userId);
-      
 
-      await pool.db("youtube").collection("videos").insertOne({userId: userObjectId, title: title, location: uploadedFile.location, timestamp: currentDateTime})
-
-      console.log(req.file);
-      res.status(200).json({ data: req.file});
-    })
+      try {
+        const result = await pool.db("youtube").collection("videos").insertOne({userId: userObjectId, title: title, location: uploadedFile.location, timestamp: currentDateTime});
+        res.status(200).json({
+          success: true,
+          video: {
+            _id: result.insertedId,
+            userId: userObjectId,
+            title: title,
+            location: uploadedFile.location,
+            timestamp: currentDateTime
+          },
+        });
+      } catch (error) {
+        console.error('Error al insertar el video:', error);
+        res.status(500).json({ success: false, message: 'Error al insertar el video' });
+      }
+    });
   }
   module.exports = { validateCredentials, Signup, Profile };
